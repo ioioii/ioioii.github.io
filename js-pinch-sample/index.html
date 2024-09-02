@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>JS Pinch Sample</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <script src="pinchable.js"></script>
+  </head>
+  <body>
+    <div class="page">
+      <h1>JS Pinch Sample</h1>
+      <div class="image-container">
+        <!-- <div id="sample-image" style="width: 800px; height: 800px;"></div> -->
+        <img id="sample-image" src="./DSC00098.JPG">
+      </div>
+      <div id="debug"></div>
+    </div>
+    <script>
+      const img = document.querySelector('#sample-image');
+      pinchable(img);
+    </script>
+  </body>
+</html>
