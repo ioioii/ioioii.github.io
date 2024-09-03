@@ -1,11 +1,9 @@
 const pinchable = (elm) => {
   elm.classList.add('pinchable');
 
-  const pinchSpeed = 200;
-
   let initialTouchPoints = [];
   let transformOrigin = { x: 0, y: 0 };
-  let diffScale = 0.0;
+  let currentScale = 1.0;
   let appliedScale = 1.0;
 
   const dbg = document.querySelector('#debug');
@@ -54,8 +52,8 @@ const pinchable = (elm) => {
 
   const handelPinchEnd = (e) => {
     initialTouchPoints = [];
-    appliedScale = Math.max(appliedScale + diffScale, 1.0);
-    diffScale = 0.0;
+    appliedScale = Math.max(appliedScale * currentScale, 1.0);
+    currentScale = 1.0;
   };
 
   const handlePinch = (e) => {
@@ -65,9 +63,8 @@ const pinchable = (elm) => {
     if (p1 >= 0 && p2 >= 0) {
       const initialDist = calcurateDistance(initialTouchPoints[p1], initialTouchPoints[p2]);
       const lastDist = calcurateDistance(e.targetTouches[0], e.targetTouches[1]);
-      const diff = lastDist - initialDist;
-      diffScale = diff / pinchSpeed;
-      const scale = Math.max(appliedScale + diffScale, 1.0);
+      currentScale = (lastDist / initialDist);
+      const scale = Math.max(appliedScale * currentScale, 1.0);
 
       const translateX = transformOrigin.x * (scale - 1.0);
       const translateY = transformOrigin.y * (scale - 1.0);
@@ -84,19 +81,17 @@ const pinchable = (elm) => {
   };
 
   const calcurateDistance = (p1, p2) => Math.sqrt((p1.clientX - p2.clientX) ** 2 + (p1.clientY - p2.clientY) ** 2);
-  const calcrateDiffX = (p1, p2) => Math.abs(p1.clientX - p2.clientX);
-  const calcrateDiffY = (p1, p2) => Math.abs(p1.clientY - p2.clientY);
 
   const transformPinchable = (translate, scale) => {
     const transform = `translate(${translate.x}px, ${translate.y}px) scale(${scale})`;
     elm.style.transform = transform;
 
     dbg.innerHTML = `
-    <div>
-      <div>origin: {x: ${transformOrigin.x}, y: ${transformOrigin.y} }</div>
-      <div>translate: { x: ${translate.x}, y: ${translate.y} }</div>
-      <div>scale: ${scale}</div>
-    </div>
+      <div>
+        <div>origin: {x: ${transformOrigin.x}, y: ${transformOrigin.y} }</div>
+        <div>translate: { x: ${translate.x}, y: ${translate.y} }</div>
+        <div>scale: ${scale}</div>
+      </div>
     `;
   };
 
