@@ -2,7 +2,6 @@ const pinchable = (elm) => {
   elm.classList.add('pinchable');
 
   let initialTouchPoints = [];
-  let lastTouchLength = 0;
   let transformOrigin = { x: 0, y: 0 };
   let currentScale = 1.0;
   let appliedScale = 1.0;
@@ -11,12 +10,13 @@ const pinchable = (elm) => {
 
   const dbg = document.querySelector('#debug');
 
+  elm.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    handleNumTouchesChanged(e);
+  });
+
   elm.addEventListener('touchmove', (e) => {
     e.preventDefault();
-
-    if (lastTouchLength !== e.targetTouches.length) {
-      handleNumTouchesChanged(e);
-    }
 
     if (e.targetTouches.length === 1 && e.changedTouches.length === 1) {
       handleScroll(e);
@@ -37,7 +37,6 @@ const pinchable = (elm) => {
     for (let i = 0; i < e.targetTouches.length; i++) {
       initialTouchPoints.push(e.targetTouches[i]);
     }
-    lastTouchLength = e.targetTouches.length;
 
     if (e.targetTouches.length > 0) {
       handleTouchStart(e);
@@ -116,8 +115,9 @@ const pinchable = (elm) => {
   const transformPinchable = (scale, translate) => {
 
     const minScale = 1 / appliedScale;
+    const maxScale = 100 / appliedScale;
 
-    currentScale = Math.max(scale, minScale);
+    currentScale = Math.min(Math.max(scale, minScale), maxScale);
     const nextScale = appliedScale * currentScale;
 
     const maxX = transformOrigin.x * (nextScale - 1) - appliedTranslate.x;
