@@ -14,11 +14,16 @@
         <!-- <div id="sample-image" style="width: 800px; height: 800px;"></div> -->
         <img id="sample-image" src="./DSC00098.JPG">
       </div>
+      <button id="reset">Reset</button>
       <div id="debug"></div>
     </div>
     <script>
       const img = document.querySelector('#sample-image');
-      pinchable(img);
+      const p = pinchable(img);
+
+      document.querySelector('#reset').addEventListener('click', () => {
+        p.reset();
+      });
     </script>
   </body>
 </html>

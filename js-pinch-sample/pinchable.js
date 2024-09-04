@@ -152,4 +152,16 @@ const pinchable = (elm) => {
       y: touch.clientY - rect.y,
     };
   };
+
+  return {
+    reset: () => {
+      initialTouchPoints = [];
+      transformOrigin = { x: 0, y: 0 };
+      currentScale = 1.0;
+      appliedScale = 1.0;
+      currentTranslate = { x: 0.0, y: 0.0 };
+      appliedTranslate = { x: 0.0, y: 0.0 };
+      transformPinchable(currentScale, currentTranslate);
+    },
+  };
 };
