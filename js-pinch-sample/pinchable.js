@@ -28,13 +28,8 @@ const pinchable = (elm) => {
   elm.addEventListener('touchend', (e) => {
     e.preventDefault();
 
-    if (lastTouchLength === 1) {
-      handleScrollEnd();
-    } else if (lastTouchLength === 2) {
-      handlePinchEnd();
-    }
+    handleTouchEnd();
     handleNumTouchesChanged(e);
-    lastTouchLength = e.targetTouches.length;
   });
 
   const handleNumTouchesChanged = (e) => {
@@ -44,53 +39,45 @@ const pinchable = (elm) => {
     }
     lastTouchLength = e.targetTouches.length;
 
-    if (e.targetTouches.length === 2) {
-      handlePinchStart(e);
+    if (e.targetTouches.length > 0) {
+      handleTouchStart(e);
     }
+  };
+
+  const handleTouchStart = (e) => {
+    if (e.targetTouches.length === 1) {
+      // 1本指スクロールの場合はどこがoriginでも関係ないので(0, 0)とする
+      setTransformOrigin({ x: 0, y: 0 });
+    } else if (e.targetTouches.length === 2) {
+      // 2本指の場合は、2本の指のちょうど中間をoriginとする
+      const offset1 = getOffset(elm, e.targetTouches[0]);
+      const offset2 = getOffset(elm, e.targetTouches[1]);
+      setTransformOrigin({
+        x: (offset1.x + offset2.x) / 2 / appliedScale,
+        y: (offset1.y + offset2.y) / 2 / appliedScale,
+      });
+    }
+  };
+
+  const handleTouchEnd = (e) => {
+    appliedScale = Math.max(appliedScale * currentScale, 1.0);
+    currentScale = 1.0;
+    appliedTranslate = {
+      x: appliedTranslate.x + currentTranslate.x,
+      y: appliedTranslate.y + currentTranslate.y,
+    };
+    currentTranslate = { x: 0.0, y: 0.0 };
+
+    transformPinchable(currentScale, currentTranslate);
   };
 
   const handleScroll = (e) => {
     const initialTouch = initialTouchPoints[0];
     const lastTouch = e.targetTouches[0];
-    const diffX = lastTouch.clientX - initialTouch.clientX;
-    const diffY = lastTouch.clientY - initialTouch.clientY;
-    currentTranslate = {
-      x: diffX,
-      y: diffY,
-    };
-    const minX = -elm.clientWidth * (appliedScale - 1);
-    const minY = -elm.clientHeight * (appliedScale - 1);
+    const dX = lastTouch.clientX - initialTouch.clientX;
+    const dY = lastTouch.clientY - initialTouch.clientY;
 
-    const translate = {
-      x: Math.min(Math.max(appliedTranslate.x + diffX, minX), 0),
-      y: Math.min(Math.max(appliedTranslate.y + diffY, minY), 0),
-    }
-
-    transformPinchable(translate, appliedScale);
-  };
-
-  const handleScrollEnd = (e) => {
-    appliedScale = Math.max(appliedScale * currentScale, 1.0);
-    currentScale = 1.0;
-
-    const minX = -elm.clientWidth * (appliedScale - 1);
-    const minY = -elm.clientHeight * (appliedScale - 1);
-
-    appliedTranslate = {
-      x: Math.min(Math.max(appliedTranslate.x + currentTranslate.x, minX), 0),
-      y: Math.min(Math.max(appliedTranslate.y + currentTranslate.y, minY), 0),
-    };
-    currentTranslate = { x: 0.0, y: 0.0 };
-  };
-
-  const handlePinchStart = (e) => {
-    const offset1 = getOffset(elm, e.targetTouches[0]);
-    const offset2 = getOffset(elm, e.targetTouches[1]);
-
-    transformOrigin = {
-      x: (offset1.x + offset2.x) / 2,
-      y: (offset1.y + offset2.y) / 2,
-    };
+    transformPinchable(1.0, { x: dX, y: dY });
   };
 
   const handlePinch = (e) => {
@@ -101,47 +88,68 @@ const pinchable = (elm) => {
 
       const initialDist = calcurateDistance(initialTouchPoints[p1], initialTouchPoints[p2]);
       const lastDist = calcurateDistance(e.targetTouches[0], e.targetTouches[1]);
-      currentScale = lastDist / initialDist;
-      const scale = Math.max(appliedScale * currentScale, 1.0);
+      const scale = lastDist / initialDist;
 
-      const translateX = -transformOrigin.x * (scale - 1.0);
-      const translateY = -transformOrigin.y * (scale - 1.0);
+      const initialX = (initialTouchPoints[p1].clientX + initialTouchPoints[p2].clientX) / 2;
+      const initialY = (initialTouchPoints[p1].clientY + initialTouchPoints[p2].clientY) / 2;
+      const currentX = (e.targetTouches[0].clientX + e.targetTouches[1].clientX) / 2;
+      const currentY = (e.targetTouches[0].clientY + e.targetTouches[1].clientY) / 2;
+      const scrollX = currentX - initialX;
+      const scrollY = currentY - initialY;
 
-      currentTranslate = {
-        x: translateX,
-        y: translateY,
-      };
-
-      transformPinchable(currentTranslate, scale);
+      transformPinchable(scale, { x: scrollX, y: scrollY });
     }
   };
 
-  const handlePinchEnd = (e) => {
-    appliedScale = Math.max(appliedScale * currentScale, 1.0);
-    currentScale = 1.0;
-    appliedTranslate = currentTranslate;
-    currentTranslate = { x: 0.0, y: 0.0 };
+  const setTransformOrigin = ({ x, y }) => {
+    // 新しいoriginを基準としてtranslateを計算しなおす
+    appliedTranslate = {
+      x: appliedTranslate.x - (transformOrigin.x - x) * (appliedScale - 1),
+      y: appliedTranslate.y - (transformOrigin.y - y) * (appliedScale - 1)
+    };
+    transformOrigin = { x, y };
+    transformPinchable(currentScale, { x: 0, y: 0 });
   };
 
   const calcurateDistance = (p1, p2) => Math.sqrt((p1.clientX - p2.clientX) ** 2 + (p1.clientY - p2.clientY) ** 2);
 
-  const transformPinchable = (translate, scale) => {
-    const transform = `translate(${translate.x}px, ${translate.y}px) scale(${scale})`;
+  const transformPinchable = (scale, translate) => {
+
+    const minScale = 1 / appliedScale;
+
+    currentScale = Math.max(scale, minScale);
+    const nextScale = appliedScale * currentScale;
+
+    const maxX = transformOrigin.x * (nextScale - 1) - appliedTranslate.x;
+    const maxY = transformOrigin.y * (nextScale - 1) - appliedTranslate.y;
+    const minX = -(elm.clientWidth - transformOrigin.x) * (nextScale - 1) - appliedTranslate.x;
+    const minY = -(elm.clientHeight - transformOrigin.y) * (nextScale - 1) - appliedTranslate.y;
+    const dX = Math.max(Math.min(translate.x, maxX), minX);
+    const dY = Math.max(Math.min(translate.y, maxY), minY);
+    const translateX = dX + appliedTranslate.x;
+    const translateY = dY + appliedTranslate.y;
+
+    currentTranslate = { x: dX, y: dY };
+
+    const transform = `translate(${translateX}px, ${translateY}px) scale(${nextScale})`;
     elm.style.transform = transform;
+    elm.style.transformOrigin = `${transformOrigin.x}px ${transformOrigin.y}px`;
 
     dbg.innerHTML = `
       <div>
         <div>origin: {x: ${transformOrigin.x}, y: ${transformOrigin.y} }</div>
-        <div>translate: { x: ${translate.x}, y: ${translate.y} }</div>
-        <div>scale: ${scale}</div>
+        <div>translate: { x: ${translateX}, y: ${translateY} }</div>
+        <div>scale: ${nextScale}</div>
       </div>
     `;
   };
 
   const getOffset = (elm, touch) => {
     const rect = elm.getBoundingClientRect();
-    const x = (touch.clientX + (elm.offsetLeft - rect.x)) / appliedScale;
-    const y = (touch.clientY + (elm.offsetTop - rect.y)) / appliedScale;
-    return { x, y };
+    console.log(touch.clientX, touch.clientY)
+    return {
+      x: touch.clientX - rect.x,
+      y: touch.clientY - rect.y,
+    };
   };
 };

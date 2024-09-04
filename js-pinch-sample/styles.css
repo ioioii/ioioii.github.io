@@ -16,11 +16,11 @@ html, body, h1 {
 .image-container {
   border: 1px solid #2c312d;
   overflow: hidden;
+  position: relative;
   width: 100%;
 }
 
 .pinchable {
-  transform-origin: 0px 0px;
   display: block;
 }
 
