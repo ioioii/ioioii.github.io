@@ -27,3 +27,17 @@ html, body, h1 {
 #sample-image {
   width: 100%;
 }
+
+.zoom-button {
+  margin: 8px;
+  display: inline-block;
+  width: 64px;
+  height: 64px;
+  line-height: 64px;
+  border-radius: 50%;
+  background: #2c312d;
+  text-align: center;
+  font-size: 20px;
+  font-weight: bold;
+  color: white;
+}

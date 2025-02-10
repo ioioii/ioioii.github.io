@@ -14,6 +14,10 @@
         <!-- <div id="sample-image" style="width: 800px; height: 800px;"></div> -->
         <img id="sample-image" src="./DSC00098.JPG">
       </div>
+      <div class="buttons">
+        <div id="zoom-out" class="zoom-button">-</div>
+        <div id="zoom-in" class="zoom-button">+</div>
+      </div>
       <button id="reset">Reset</button>
       <div id="debug"></div>
     </div>
@@ -23,6 +27,12 @@
 
       document.querySelector('#reset').addEventListener('click', () => {
         p.reset();
+      });
+      document.querySelector('#zoom-in').addEventListener('click', () => {
+        p.zoomIn(1.1);
+      });
+      document.querySelector('#zoom-out').addEventListener('click', () => {
+        p.zoomOut(1.1);
       });
     </script>
   </body>

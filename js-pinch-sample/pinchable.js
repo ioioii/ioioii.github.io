@@ -59,6 +59,11 @@ const pinchable = (elm) => {
   };
 
   const handleTouchEnd = (e) => {
+    applyCurrentTransform();
+    transformPinchable(currentScale, currentTranslate);
+  };
+
+  const applyCurrentTransform = () => {
     appliedScale = Math.max(appliedScale * currentScale, 1.0);
     currentScale = 1.0;
     appliedTranslate = {
@@ -66,8 +71,6 @@ const pinchable = (elm) => {
       y: appliedTranslate.y + currentTranslate.y,
     };
     currentTranslate = { x: 0.0, y: 0.0 };
-
-    transformPinchable(currentScale, currentTranslate);
   };
 
   const handleScroll = (e) => {
@@ -140,6 +143,10 @@ const pinchable = (elm) => {
         <div>origin: {x: ${transformOrigin.x}, y: ${transformOrigin.y} }</div>
         <div>translate: { x: ${translateX}, y: ${translateY} }</div>
         <div>scale: ${nextScale}</div>
+        <div>currentTranslate: { x: ${currentTranslate.x}, y: ${currentTranslate.y} }</div>
+        <div>currentScale: ${currentScale}</div>
+        <div>appliedTranslate: { x: ${appliedTranslate.x}, y: ${appliedTranslate.y} }</div>
+        <div>appliedScale: ${appliedScale}</div>
       </div>
     `;
   };
@@ -153,6 +160,39 @@ const pinchable = (elm) => {
     };
   };
 
+  const getCurrentCenter = () => {
+    if (appliedScale === 1) {
+      return {
+        x: elm.clientWidth / 2,
+        y: elm.clientHeight / 2,
+      };
+    } else {
+      const offsetX = (-elm.clientWidth / 2 * (appliedScale - 1) - appliedTranslate.x) / appliedScale;
+      const offsetY = (-elm.clientHeight / 2 * (appliedScale - 1) - appliedTranslate.y) / appliedScale;
+      return {
+        x: elm.clientWidth / 2 + offsetX,
+        y: elm.clientHeight / 2 + offsetY,
+      };
+    }
+  }
+
+  const zoomIn = (ratio) => {
+    const imageCenter = getCurrentCenter();
+    console.log(imageCenter);
+    setTransformOrigin(imageCenter);
+    transformPinchable(ratio, { x: 0, y: 0 });
+    applyCurrentTransform();
+    setTransformOrigin({ x: 0, y: 0 });
+  };
+
+  const zoomOut = (ratio) => {
+    const imageCenter = getCurrentCenter();
+    setTransformOrigin(imageCenter);
+    transformPinchable(1 / ratio, { x: 0, y: 0 });
+    applyCurrentTransform();
+    setTransformOrigin({ x: 0, y: 0 });
+  };
+
   return {
     reset: () => {
       initialTouchPoints = [];
@@ -163,5 +203,7 @@ const pinchable = (elm) => {
       appliedTranslate = { x: 0.0, y: 0.0 };
       transformPinchable(currentScale, currentTranslate);
     },
+    zoomIn,
+    zoomOut,
   };
 };
