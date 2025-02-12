@@ -23,7 +23,10 @@
     </div>
     <script>
       const img = document.querySelector('#sample-image');
-      const p = pinchable(img);
+      const p = pinchable(img, {
+        maxScale: 5.0,
+        minScale: 1.0,
+      });
 
       document.querySelector('#reset').addEventListener('click', () => {
         p.reset();

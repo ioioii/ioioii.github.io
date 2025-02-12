@@ -1,4 +1,4 @@
-const pinchable = (elm) => {
+const pinchable = (elm, options = { maxScale: 2.0, minScale: 1.0 }) => {
   elm.classList.add('pinchable');
 
   let initialTouchPoints = [];
@@ -117,8 +117,8 @@ const pinchable = (elm) => {
 
   const transformPinchable = (scale, translate) => {
 
-    const minScale = 1 / appliedScale;
-    const maxScale = 100 / appliedScale;
+    const minScale = options.minScale / appliedScale;
+    const maxScale = options.maxScale / appliedScale;
 
     currentScale = Math.min(Math.max(scale, minScale), maxScale);
     const nextScale = appliedScale * currentScale;
