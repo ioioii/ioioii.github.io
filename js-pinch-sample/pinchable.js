@@ -6,6 +6,7 @@ const pinchable = (elm, options = {
   elm.classList.add('pinchable');
 
   let initialTouchPoints = [];
+  /** 拡大縮小前の元画像座標系で指定する */
   let transformOrigin = { x: 0, y: 0 };
 
   /** 未確定の拡大縮小率 */
@@ -148,10 +149,10 @@ const pinchable = (elm, options = {
   const calculateTranslateBounds = (scale) => {
     // 拡大によって枠からはみ出した分だけ平行移動可能
     return {
-      xMax: 0,
-      yMax: 0,
-      xMin: -elm.clientWidth * (scale - 1),
-      yMin: -elm.clientHeight * (scale - 1),
+      xMax: transformOrigin.x * (scale - 1),
+      yMax: transformOrigin.y * (scale - 1),
+      xMin: -(elm.clientWidth - transformOrigin.x) * (scale - 1),
+      yMin: -(elm.clientHeight - transformOrigin.y) * (scale - 1),
     };
   };
 
