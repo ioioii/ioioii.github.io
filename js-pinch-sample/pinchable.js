@@ -1,11 +1,20 @@
-const pinchable = (elm, options = { maxScale: 2.0, minScale: 1.0 }) => {
+const pinchable = (elm, options = {
+  maxScale: 2.0,
+  overPinchOut: 1.0,
+  scrollMargin: 100,
+}) => {
   elm.classList.add('pinchable');
 
   let initialTouchPoints = [];
   let transformOrigin = { x: 0, y: 0 };
+
+  /** 未確定の拡大縮小率 */
   let currentScale = 1.0;
+  /** 確定済みの拡大縮小率 */
   let appliedScale = 1.0;
+  /** 未確定の平行移動 */
   let currentTranslate = { x: 0.0, y: 0.0 };
+  /** 確定済みの平行移動 */
   let appliedTranslate = { x: 0.0, y: 0.0 };
 
   const dbg = document.querySelector('#debug');
@@ -17,7 +26,6 @@ const pinchable = (elm, options = { maxScale: 2.0, minScale: 1.0 }) => {
 
   elm.addEventListener('touchmove', (e) => {
     e.preventDefault();
-
     if (e.targetTouches.length === 1 && e.changedTouches.length === 1) {
       handleScroll(e);
     } else if (e.targetTouches.length === 2 && e.changedTouches.length === 2) {
@@ -27,7 +35,6 @@ const pinchable = (elm, options = { maxScale: 2.0, minScale: 1.0 }) => {
 
   elm.addEventListener('touchend', (e) => {
     e.preventDefault();
-
     handleTouchEnd();
     handleNumTouchesChanged(e);
   });
@@ -64,11 +71,18 @@ const pinchable = (elm, options = { maxScale: 2.0, minScale: 1.0 }) => {
   };
 
   const applyCurrentTransform = () => {
-    appliedScale = Math.max(appliedScale * currentScale, 1.0);
+    const scaleBounds = calculateScaleBounds()
+    const maxScale = scaleBounds.scaleMax;
+    const minScale = scaleBounds.scaleMin;
+    appliedScale = Math.max(Math.min(appliedScale * currentScale, maxScale), minScale);
     currentScale = 1.0;
+
+    const translateBounds = calculateTranslateBounds(appliedScale)
+    const xSum = appliedTranslate.x + currentTranslate.x;
+    const ySum = appliedTranslate.y + currentTranslate.y;
     appliedTranslate = {
-      x: appliedTranslate.x + currentTranslate.x,
-      y: appliedTranslate.y + currentTranslate.y,
+      x: Math.max(Math.min(xSum, translateBounds.xMax), translateBounds.xMin),
+      y: Math.max(Math.min(ySum, translateBounds.yMax), translateBounds.yMin),
     };
     currentTranslate = { x: 0.0, y: 0.0 };
   };
@@ -90,7 +104,7 @@ const pinchable = (elm, options = { maxScale: 2.0, minScale: 1.0 }) => {
 
       const initialDist = calcurateDistance(initialTouchPoints[p1], initialTouchPoints[p2]);
       const lastDist = calcurateDistance(e.targetTouches[0], e.targetTouches[1]);
-      const scale = lastDist / initialDist;
+      const scale = lastDist / Math.max(initialDist, 1);
 
       const initialX = (initialTouchPoints[p1].clientX + initialTouchPoints[p2].clientX) / 2;
       const initialY = (initialTouchPoints[p1].clientY + initialTouchPoints[p2].clientY) / 2;
@@ -115,26 +129,61 @@ const pinchable = (elm, options = { maxScale: 2.0, minScale: 1.0 }) => {
 
   const calcurateDistance = (p1, p2) => Math.sqrt((p1.clientX - p2.clientX) ** 2 + (p1.clientY - p2.clientY) ** 2);
 
-  const transformPinchable = (scale, translate) => {
+  /**
+   * 適用できる拡大縮小率の上限、下限を返す。
+   * @returns 拡大縮小率の上限・下限
+   */
+  const calculateScaleBounds = () => {
+    return {
+      scaleMax: options.maxScale,
+      scaleMin: 1,
+    };
+  };
 
-    const minScale = options.minScale / appliedScale;
-    const maxScale = options.maxScale / appliedScale;
+  /**
+   * 拡大縮小率`scale`に対して、適用できる平行移動量の上限と下限を計算して返す。
+   * @param {number} scale 拡大縮小率
+   * @returns 平行移動量の上限・下限
+   */
+  const calculateTranslateBounds = (scale) => {
+    // 拡大によって枠からはみ出した分だけ平行移動可能
+    return {
+      xMax: 0,
+      yMax: 0,
+      xMin: -elm.clientWidth * (scale - 1),
+      yMin: -elm.clientHeight * (scale - 1),
+    };
+  };
 
-    currentScale = Math.min(Math.max(scale, minScale), maxScale);
-    const nextScale = appliedScale * currentScale;
+  const transformPinchable = (dScale, dTranslate) => {
 
-    const maxX = transformOrigin.x * (nextScale - 1) - appliedTranslate.x;
-    const maxY = transformOrigin.y * (nextScale - 1) - appliedTranslate.y;
-    const minX = -(elm.clientWidth - transformOrigin.x) * (nextScale - 1) - appliedTranslate.x;
-    const minY = -(elm.clientHeight - transformOrigin.y) * (nextScale - 1) - appliedTranslate.y;
-    const dX = Math.max(Math.min(translate.x, maxX), minX);
-    const dY = Math.max(Math.min(translate.y, maxY), minY);
-    const translateX = dX + appliedTranslate.x;
-    const translateY = dY + appliedTranslate.y;
+    // 今回のTransformで拡大縮小できる最大・最小値
+    // 縮小については1.0倍を下回ってoverPinchOut倍まで縮小することができる
+    const scaleBounds = calculateScaleBounds(appliedScale)
+    const dScaleMax = scaleBounds.scaleMax / appliedScale;
+    const dScaleMin = scaleBounds.scaleMin / appliedScale * options.overPinchOut;
 
-    currentTranslate = { x: dX, y: dY };
+    currentScale = Math.min(Math.max(dScale, dScaleMin), dScaleMax);
+    const scale = appliedScale * currentScale;
 
-    const transform = `translate(${translateX}px, ${translateY}px) scale(${nextScale})`;
+    // 今回のTransformで平行移動できる最大・最小値
+    // 本来可能な平行移動量 + マージン分だけ平行移動可能
+    // またマージンは拡大縮小率によらず一定
+    const translateBounds = calculateTranslateBounds(scale)
+    const margin = options.scrollMargin;
+    const dXMax = translateBounds.xMax - appliedTranslate.x + margin;
+    const dYMax = translateBounds.yMax - appliedTranslate.y + margin;
+    const dXMin = translateBounds.xMin - appliedTranslate.x - margin;
+    const dYMin = translateBounds.yMin - appliedTranslate.y - margin;
+
+    currentTranslate = {
+      x: Math.max(Math.min(dTranslate.x, dXMax), dXMin),
+      y: Math.max(Math.min(dTranslate.y, dYMax), dYMin),
+    };
+    const translateX = appliedTranslate.x + currentTranslate.x;
+    const translateY = appliedTranslate.y + currentTranslate.y;
+
+    const transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
     elm.style.transform = transform;
     elm.style.transformOrigin = `${transformOrigin.x}px ${transformOrigin.y}px`;
 
@@ -142,7 +191,7 @@ const pinchable = (elm, options = { maxScale: 2.0, minScale: 1.0 }) => {
       <div>
         <div>origin: {x: ${transformOrigin.x}, y: ${transformOrigin.y} }</div>
         <div>translate: { x: ${translateX}, y: ${translateY} }</div>
-        <div>scale: ${nextScale}</div>
+        <div>scale: ${scale}</div>
         <div>currentTranslate: { x: ${currentTranslate.x}, y: ${currentTranslate.y} }</div>
         <div>currentScale: ${currentScale}</div>
         <div>appliedTranslate: { x: ${appliedTranslate.x}, y: ${appliedTranslate.y} }</div>
@@ -153,7 +202,6 @@ const pinchable = (elm, options = { maxScale: 2.0, minScale: 1.0 }) => {
 
   const getOffset = (elm, touch) => {
     const rect = elm.getBoundingClientRect();
-    console.log(touch.clientX, touch.clientY)
     return {
       x: touch.clientX - rect.x,
       y: touch.clientY - rect.y,
@@ -178,7 +226,6 @@ const pinchable = (elm, options = { maxScale: 2.0, minScale: 1.0 }) => {
 
   const zoomIn = (ratio) => {
     const imageCenter = getCurrentCenter();
-    console.log(imageCenter);
     setTransformOrigin(imageCenter);
     transformPinchable(ratio, { x: 0, y: 0 });
     applyCurrentTransform();

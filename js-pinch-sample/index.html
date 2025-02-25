@@ -25,7 +25,8 @@
       const img = document.querySelector('#sample-image');
       const p = pinchable(img, {
         maxScale: 5.0,
-        minScale: 1.0,
+        overPinchOut: 0.9,
+        scrollMargin: 50,
       });
 
       document.querySelector('#reset').addEventListener('click', () => {
