@@ -172,7 +172,7 @@ const pinchable = (elm, options = {
     // 今回のTransformで平行移動できる最大・最小値
     // 本来可能な平行移動量 + マージン分だけ平行移動可能
     // またマージンは拡大縮小率によらず一定
-    const translateBounds = calculateTranslateBounds(scale)
+    const translateBounds = calculateTranslateBounds(scale);
     const margin = options.scrollMargin;
     const dXMax = translateBounds.xMax - appliedTranslate.x + margin;
     const dYMax = translateBounds.yMax - appliedTranslate.y + margin;
@@ -186,8 +186,11 @@ const pinchable = (elm, options = {
     const translateX = appliedTranslate.x + currentTranslate.x;
     const translateY = appliedTranslate.y + currentTranslate.y;
 
-    const transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
-    elm.style.transform = transform;
+    const transformTranslate = `translate(${translateX}px, ${translateY}px)`;
+    // Chromeバグ?対応
+    // scaleが1のときにtranslateするとちらつくことがあるため、小さい値を足す
+    const transformScale = `scale(${scale + 0.000001})`;
+    elm.style.transform = `${transformTranslate} ${transformScale}`;
     elm.style.transformOrigin = `${transformOrigin.x}px ${transformOrigin.y}px`;
 
     dbg.innerHTML = `
