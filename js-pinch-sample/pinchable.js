@@ -19,6 +19,7 @@ const pinchable = (elm, options = {
   let appliedTranslate = { x: 0.0, y: 0.0 };
 
   const dbg = document.querySelector('#debug');
+  let nApplied = 0;
 
   elm.addEventListener('touchstart', (e) => {
     e.preventDefault();
@@ -72,6 +73,7 @@ const pinchable = (elm, options = {
   };
 
   const applyCurrentTransform = () => {
+    nApplied += 1;
     const scaleBounds = calculateScaleBounds()
     const maxScale = scaleBounds.scaleMax;
     const minScale = scaleBounds.scaleMin;
@@ -197,6 +199,7 @@ const pinchable = (elm, options = {
         <div>currentScale: ${currentScale}</div>
         <div>appliedTranslate: { x: ${appliedTranslate.x}, y: ${appliedTranslate.y} }</div>
         <div>appliedScale: ${appliedScale}</div>
+        <div>nApplied: ${nApplied}</div>
       </div>
     `;
   };
